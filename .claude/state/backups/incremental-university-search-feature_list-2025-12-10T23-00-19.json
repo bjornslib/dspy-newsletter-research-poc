@@ -1,0 +1,652 @@
+[
+  {
+    "id": "F001",
+    "description": "Type definitions for search results exist and compile",
+    "steps": [
+      "Create file lib/types/searchResults.ts in university-contacts directory",
+      "Define VectorSearchResult interface with id, university_name, country, email, similarity_score, distance",
+      "Define PSQLEnrichment interface with verification_status, confidence_score, timestamps",
+      "Define EnrichedUniversityContact extending VectorSearchResult",
+      "Define UniversitySearchRequest and UniversitySearchResponse interfaces",
+      "Define SearchState union type (idle, searching, success, error)",
+      "Run npx tsc --noEmit and verify no errors"
+    ],
+    "passes": true,
+    "scope": [
+      "agencheck-support-frontend/app/university-contacts/lib/types/searchResults.ts"
+    ],
+    "validation": "unit",
+    "worker_type": "frontend",
+    "dependencies": []
+  },
+  {
+    "id": "F002",
+    "description": "Vector search API client handles requests and errors",
+    "steps": [
+      "Create file lib/api/universitySearch.ts in university-contacts directory",
+      "Import types from searchResults.ts",
+      "Implement searchUniversities async function with POST to /api/search/universities",
+      "Handle response.ok check and throw error with message on failure",
+      "Implement checkUniversitySearchHealth function",
+      "Run npx tsc --noEmit and verify no errors"
+    ],
+    "passes": true,
+    "scope": [
+      "agencheck-support-frontend/app/university-contacts/lib/api/universitySearch.ts"
+    ],
+    "validation": "unit",
+    "worker_type": "frontend",
+    "dependencies": ["F001"]
+  },
+  {
+    "id": "F002T",
+    "description": "API client tests verify fetch behavior and error handling",
+    "steps": [
+      "Create test file lib/api/__tests__/universitySearch.test.ts",
+      "Set up msw (Mock Service Worker) for API mocking",
+      "Test: searchUniversities sends correct POST request with query and top_k",
+      "Test: searchUniversities returns parsed response on success",
+      "Test: searchUniversities throws error with message on 400 response",
+      "Test: searchUniversities throws error on network failure",
+      "Test: checkUniversitySearchHealth returns true on 200 response",
+      "Test: checkUniversitySearchHealth returns false on error",
+      "Run: npm test -- universitySearch.test.ts",
+      "Verify all tests pass with no failures"
+    ],
+    "passes": true,
+    "scope": [
+      "agencheck-support-frontend/app/university-contacts/lib/api/__tests__/universitySearch.test.ts"
+    ],
+    "validation": "unit",
+    "worker_type": "frontend",
+    "dependencies": ["F002"]
+  },
+  {
+    "id": "F004",
+    "description": "usePSQLEnrichment hook fetches contact details after delay",
+    "steps": [
+      "Create file hooks/usePSQLEnrichment.ts in university-contacts directory",
+      "Import types from searchResults.ts",
+      "Implement useState for enrichedContacts Map",
+      "Implement useRef for timers and abort controllers",
+      "Implement fetchEnrichment with AbortSignal support",
+      "Implement scheduleEnrichment with configurable delay (500ms default)",
+      "Implement enrichContacts to schedule multiple contacts",
+      "Implement clearEnrichment to reset all state",
+      "Add useEffect cleanup for timers and abort controllers",
+      "Run npx tsc --noEmit and verify no errors"
+    ],
+    "passes": true,
+    "scope": [
+      "agencheck-support-frontend/app/university-contacts/hooks/usePSQLEnrichment.ts"
+    ],
+    "validation": "unit",
+    "worker_type": "frontend",
+    "dependencies": ["F001"]
+  },
+  {
+    "id": "F004T",
+    "description": "usePSQLEnrichment tests verify timing, abort, and Map updates",
+    "steps": [
+      "Create test file hooks/__tests__/usePSQLEnrichment.test.ts",
+      "Set up React Testing Library renderHook utility",
+      "Mock fetch API for enrichment endpoint",
+      "Test: scheduleEnrichment delays fetch by specified ms (use fake timers)",
+      "Test: enrichContacts schedules multiple contacts",
+      "Test: clearEnrichment cancels pending timers",
+      "Test: abort controller cancels in-flight requests on unmount",
+      "Test: enrichedContacts Map updates correctly after fetch",
+      "Test: failed fetch does not crash, handles error gracefully",
+      "Run: npm test -- usePSQLEnrichment.test.ts",
+      "Verify all tests pass with no failures"
+    ],
+    "passes": true,
+    "scope": [
+      "agencheck-support-frontend/app/university-contacts/hooks/__tests__/usePSQLEnrichment.test.ts"
+    ],
+    "validation": "unit",
+    "worker_type": "frontend",
+    "dependencies": ["F004"]
+  },
+  {
+    "id": "F005",
+    "description": "useInfiniteScroll hook triggers load when sentinel visible",
+    "steps": [
+      "Create file hooks/useInfiniteScroll.ts in university-contacts directory",
+      "Implement useRef for sentinel element and observer",
+      "Implement handleIntersection callback checking isIntersecting, hasMore, isLoading",
+      "Create IntersectionObserver with rootMargin 100px",
+      "Observe sentinel element in useEffect",
+      "Add cleanup to disconnect observer on unmount",
+      "Return sentinelRef for use in component",
+      "Run npx tsc --noEmit and verify no errors"
+    ],
+    "passes": true,
+    "scope": [
+      "agencheck-support-frontend/app/university-contacts/hooks/useInfiniteScroll.ts"
+    ],
+    "validation": "unit",
+    "worker_type": "frontend",
+    "dependencies": []
+  },
+  {
+    "id": "F005T",
+    "description": "useInfiniteScroll tests verify observer behavior and cleanup",
+    "steps": [
+      "Create test file hooks/__tests__/useInfiniteScroll.test.ts",
+      "Set up React Testing Library renderHook utility",
+      "Mock IntersectionObserver globally",
+      "Test: calls onLoadMore when sentinel intersects and hasMore is true",
+      "Test: does NOT call onLoadMore when isLoading is true",
+      "Test: does NOT call onLoadMore when hasMore is false",
+      "Test: disconnects observer on unmount (cleanup)",
+      "Test: re-observes when sentinel ref changes",
+      "Run: npm test -- useInfiniteScroll.test.ts",
+      "Verify all tests pass with no failures"
+    ],
+    "passes": true,
+    "scope": [
+      "agencheck-support-frontend/app/university-contacts/hooks/__tests__/useInfiniteScroll.test.ts"
+    ],
+    "validation": "unit",
+    "worker_type": "frontend",
+    "dependencies": ["F005"]
+  },
+  {
+    "id": "F006",
+    "description": "UniversitySearchInput renders with auto-focus and spinner",
+    "steps": [
+      "Create file components/UniversitySearchInput.tsx in university-contacts directory",
+      "Add 'use client' directive",
+      "Import useRef, useEffect from react",
+      "Import Spinner from shadcn/ui",
+      "Define props interface: value, onChange, isSearching, placeholder",
+      "Implement useRef for input element",
+      "Implement useEffect to focus input on mount",
+      "Render input with Tailwind styling, aria-label",
+      "Conditionally render Spinner when isSearching is true",
+      "Run npx tsc --noEmit and verify no errors"
+    ],
+    "passes": true,
+    "scope": [
+      "agencheck-support-frontend/app/university-contacts/components/UniversitySearchInput.tsx"
+    ],
+    "validation": "unit",
+    "worker_type": "frontend",
+    "dependencies": []
+  },
+  {
+    "id": "F006T",
+    "description": "UniversitySearchInput tests verify focus and spinner behavior",
+    "steps": [
+      "Create test file components/__tests__/UniversitySearchInput.test.tsx",
+      "Set up React Testing Library with render utility",
+      "Test: input element receives focus on mount",
+      "Test: spinner is NOT visible when isSearching=false",
+      "Test: spinner IS visible when isSearching=true",
+      "Test: onChange callback fires when typing in input",
+      "Test: input has correct aria-label for accessibility",
+      "Test: placeholder text displays correctly",
+      "Run: npm test -- UniversitySearchInput.test.tsx",
+      "Verify all tests pass with no failures"
+    ],
+    "passes": true,
+    "scope": [
+      "agencheck-support-frontend/app/university-contacts/components/__tests__/UniversitySearchInput.test.tsx"
+    ],
+    "validation": "unit",
+    "worker_type": "frontend",
+    "dependencies": ["F006"]
+  },
+  {
+    "id": "F007",
+    "description": "CountryFilter renders dropdown with unique countries",
+    "steps": [
+      "Create file components/CountryFilter.tsx in university-contacts directory",
+      "Add 'use client' directive",
+      "Define props interface: value, onChange, countries array",
+      "Render label with htmlFor matching select id",
+      "Render select with aria-label for accessibility",
+      "Render 'All Countries' as first option with empty value",
+      "Map countries array to option elements",
+      "Run npx tsc --noEmit and verify no errors"
+    ],
+    "passes": true,
+    "scope": [
+      "agencheck-support-frontend/app/university-contacts/components/CountryFilter.tsx"
+    ],
+    "validation": "unit",
+    "worker_type": "frontend",
+    "dependencies": []
+  },
+  {
+    "id": "F008",
+    "description": "UniversityCardSkeleton renders placeholder cards",
+    "steps": [
+      "Create file components/UniversityCardSkeleton.tsx in university-contacts directory",
+      "Add 'use client' directive",
+      "Import Skeleton from shadcn/ui",
+      "Define props interface with count defaulting to 25",
+      "Map Array.from({length: count}) to skeleton card divs",
+      "Add Skeleton components for name, country, email, badge area",
+      "Style with Tailwind matching result card dimensions",
+      "Run npx tsc --noEmit and verify no errors"
+    ],
+    "passes": true,
+    "scope": [
+      "agencheck-support-frontend/app/university-contacts/components/UniversityCardSkeleton.tsx"
+    ],
+    "validation": "unit",
+    "worker_type": "frontend",
+    "dependencies": []
+  },
+  {
+    "id": "F003",
+    "description": "useVectorSearch hook provides debounced search with pagination",
+    "steps": [
+      "Create file hooks/useVectorSearch.ts in university-contacts directory",
+      "Import searchUniversities from API client",
+      "Implement useState for searchState with SearchState type",
+      "Implement useRef for debounce timer",
+      "Implement performSearch with async API call and state updates",
+      "Implement debounced search function using setTimeout",
+      "Implement loadMore function for pagination",
+      "Implement reset function to clear state",
+      "Add useEffect cleanup for timer on unmount",
+      "Return searchState, search, loadMore, reset, and derived values",
+      "Run npx tsc --noEmit and verify no errors"
+    ],
+    "passes": true,
+    "scope": [
+      "agencheck-support-frontend/app/university-contacts/hooks/useVectorSearch.ts"
+    ],
+    "validation": "unit",
+    "worker_type": "frontend",
+    "dependencies": ["F001", "F002T"]
+  },
+  {
+    "id": "F003T",
+    "description": "useVectorSearch tests verify debounce, state, and pagination",
+    "steps": [
+      "Create test file hooks/__tests__/useVectorSearch.test.ts",
+      "Set up React Testing Library renderHook utility",
+      "Mock searchUniversities API function",
+      "Test: search function debounces by 800ms (use fake timers)",
+      "Test: state transitions from idle to searching to success",
+      "Test: state transitions to error on API failure",
+      "Test: loadMore increments top_k and appends results",
+      "Test: reset clears state back to idle",
+      "Test: rapid typing only triggers one API call after debounce",
+      "Test: cleanup cancels pending debounce timer",
+      "Run: npm test -- useVectorSearch.test.ts",
+      "Verify all tests pass with no failures"
+    ],
+    "passes": true,
+    "scope": [
+      "agencheck-support-frontend/app/university-contacts/hooks/__tests__/useVectorSearch.test.ts"
+    ],
+    "validation": "unit",
+    "worker_type": "frontend",
+    "dependencies": ["F003"]
+  },
+  {
+    "id": "F009",
+    "description": "UniversityResultCard displays contact with enrichment states",
+    "steps": [
+      "Create file components/UniversityResultCard.tsx in university-contacts directory",
+      "Add 'use client' directive",
+      "Import Skeleton from shadcn/ui",
+      "Import types from searchResults.ts",
+      "Define props: contact, enrichment optional, onCardClick",
+      "Implement getBadgeColor helper for verification status colors",
+      "Implement formatStatus helper for display text",
+      "Render university name, country, email, similarity score",
+      "Conditionally render Skeleton or enrichment data based on enrichment prop",
+      "Add click handler calling onCardClick with contact.id",
+      "Style with Tailwind and hover effects",
+      "Run npx tsc --noEmit and verify no errors"
+    ],
+    "passes": true,
+    "scope": [
+      "agencheck-support-frontend/app/university-contacts/components/UniversityResultCard.tsx"
+    ],
+    "validation": "unit",
+    "worker_type": "frontend",
+    "dependencies": ["F001", "F008"]
+  },
+  {
+    "id": "F009T",
+    "description": "UniversityResultCard tests verify rendering and enrichment states",
+    "steps": [
+      "Create test file components/__tests__/UniversityResultCard.test.tsx",
+      "Set up React Testing Library with render utility",
+      "Create mock VectorSearchResult and PSQLEnrichment data",
+      "Test: renders university name, country, email from contact",
+      "Test: renders similarity score as percentage",
+      "Test: shows Skeleton when enrichment prop is undefined",
+      "Test: shows verification status badge when enrichment provided",
+      "Test: getBadgeColor returns correct color for each status",
+      "Test: click handler calls onCardClick with contact.id",
+      "Test: hover effects apply correct CSS classes",
+      "Run: npm test -- UniversityResultCard.test.tsx",
+      "Verify all tests pass with no failures"
+    ],
+    "passes": true,
+    "scope": [
+      "agencheck-support-frontend/app/university-contacts/components/__tests__/UniversityResultCard.test.tsx"
+    ],
+    "validation": "unit",
+    "worker_type": "frontend",
+    "dependencies": ["F009"]
+  },
+  {
+    "id": "F010",
+    "description": "UniversityResultsList renders grid with infinite scroll",
+    "steps": [
+      "Create file components/UniversityResultsList.tsx in university-contacts directory",
+      "Add 'use client' directive",
+      "Import motion, AnimatePresence from motion/react",
+      "Import UniversityResultCard, UniversityCardSkeleton, useInfiniteScroll",
+      "Define props: results, enrichedContacts Map, isSearching, hasMore, onLoadMore, onCardClick",
+      "Call useInfiniteScroll with onLoadMore, hasMore, isLoading",
+      "Render skeleton grid when isSearching and no results",
+      "Render empty state when not searching and no results",
+      "Render results in grid with AnimatePresence and motion.div",
+      "Add sentinel div with ref for infinite scroll",
+      "Show skeleton cards below sentinel when hasMore",
+      "Run npx tsc --noEmit and verify no errors"
+    ],
+    "passes": true,
+    "scope": [
+      "agencheck-support-frontend/app/university-contacts/components/UniversityResultsList.tsx"
+    ],
+    "validation": "unit",
+    "worker_type": "frontend",
+    "dependencies": ["F005T", "F008", "F009T"]
+  },
+  {
+    "id": "F010T",
+    "description": "UniversityResultsList tests verify grid rendering and scroll behavior",
+    "steps": [
+      "Create test file components/__tests__/UniversityResultsList.test.tsx",
+      "Set up React Testing Library with render utility",
+      "Mock useInfiniteScroll hook",
+      "Create mock results array and enrichedContacts Map",
+      "Test: renders skeleton grid when isSearching=true and results empty",
+      "Test: renders empty state message when not searching and no results",
+      "Test: renders correct number of UniversityResultCard components",
+      "Test: passes enrichment data from Map to cards",
+      "Test: sentinel div has correct ref for infinite scroll",
+      "Test: shows skeleton cards when hasMore=true",
+      "Test: onCardClick propagates to child cards",
+      "Run: npm test -- UniversityResultsList.test.tsx",
+      "Verify all tests pass with no failures"
+    ],
+    "passes": true,
+    "scope": [
+      "agencheck-support-frontend/app/university-contacts/components/__tests__/UniversityResultsList.test.tsx"
+    ],
+    "validation": "unit",
+    "worker_type": "frontend",
+    "dependencies": ["F010"]
+  },
+  {
+    "id": "F011",
+    "description": "UniversitySearchContainer orchestrates all search functionality",
+    "steps": [
+      "Create file components/UniversitySearchContainer.tsx in university-contacts directory",
+      "Add 'use client' directive",
+      "Import useState, useCallback, useEffect, useMemo from react",
+      "Import all child components and hooks",
+      "Define props: onCardClick callback",
+      "Initialize useState for searchQuery and countryFilter",
+      "Call useVectorSearch hook with options",
+      "Call usePSQLEnrichment hook with options",
+      "Add useEffect to trigger search on query change",
+      "Add useEffect to enrich results when they load",
+      "Implement useMemo for filtered results by country",
+      "Implement useMemo for unique countries extraction",
+      "Implement handleLoadMore callback",
+      "Render header with title",
+      "Render search input and country filter in grid",
+      "Render results count when available",
+      "Render UniversityResultsList with all props",
+      "Run npx tsc --noEmit and verify no errors"
+    ],
+    "passes": true,
+    "scope": [
+      "agencheck-support-frontend/app/university-contacts/components/UniversitySearchContainer.tsx"
+    ],
+    "validation": "unit",
+    "worker_type": "frontend",
+    "dependencies": ["F003T", "F004T", "F006T", "F007", "F010T"]
+  },
+  {
+    "id": "F011T",
+    "description": "UniversitySearchContainer integration tests verify full search flow",
+    "steps": [
+      "Create test file components/__tests__/UniversitySearchContainer.test.tsx",
+      "Set up React Testing Library with render utility",
+      "Mock all hooks: useVectorSearch, usePSQLEnrichment",
+      "Set up msw for API mocking",
+      "Test: renders search input, country filter, and results list",
+      "Test: typing in search input triggers useVectorSearch.search",
+      "Test: results loading triggers usePSQLEnrichment.enrichContacts",
+      "Test: country filter filters results client-side",
+      "Test: unique countries extracted from results for dropdown",
+      "Test: loadMore callback increments pagination",
+      "Test: onCardClick propagates to parent",
+      "Run: npm test -- UniversitySearchContainer.test.tsx",
+      "Verify all tests pass with no failures"
+    ],
+    "passes": true,
+    "scope": [
+      "agencheck-support-frontend/app/university-contacts/components/__tests__/UniversitySearchContainer.test.tsx"
+    ],
+    "validation": "unit",
+    "worker_type": "frontend",
+    "dependencies": ["F011"]
+  },
+  {
+    "id": "F012",
+    "description": "Page integrates UniversitySearchContainer with existing modal",
+    "steps": [
+      "Open agencheck-support-frontend/app/university-contacts/page.tsx",
+      "Add import for UniversitySearchContainer",
+      "Simplify UniversityContactsPageContent to use new container",
+      "Keep selectedContactId and isModalOpen state",
+      "Keep handleCardClick and handleModalClose callbacks",
+      "Replace existing content with UniversitySearchContainer",
+      "Keep UniversityContactModal with existing props",
+      "Remove unused imports (useUniversityContacts, useRouter, etc.)",
+      "Run npx tsc --noEmit and verify no errors"
+    ],
+    "passes": true,
+    "scope": [
+      "agencheck-support-frontend/app/university-contacts/page.tsx"
+    ],
+    "validation": "unit",
+    "worker_type": "frontend",
+    "dependencies": ["F011T"]
+  },
+  {
+    "id": "F012T",
+    "description": "Page integration tests verify modal interaction works",
+    "steps": [
+      "Create test file __tests__/page.test.tsx in university-contacts directory",
+      "Set up React Testing Library with render utility",
+      "Mock UniversitySearchContainer component",
+      "Mock UniversityContactModal component",
+      "Test: page renders UniversitySearchContainer",
+      "Test: clicking card opens modal with correct contactId",
+      "Test: modal closes when handleModalClose called",
+      "Test: modal displays when isModalOpen=true",
+      "Test: existing modal props preserved (onClose, contactId)",
+      "Run: npm test -- page.test.tsx",
+      "Verify all tests pass with no failures"
+    ],
+    "passes": true,
+    "scope": [
+      "agencheck-support-frontend/app/university-contacts/__tests__/page.test.tsx"
+    ],
+    "validation": "unit",
+    "worker_type": "frontend",
+    "dependencies": ["F012"]
+  },
+  {
+    "id": "F013",
+    "description": "E2E: Search input auto-focuses and shows spinner during search",
+    "steps": [
+      "Start frontend dev server: npm run dev",
+      "Navigate to http://localhost:3000/university-contacts using browsermcp",
+      "Verify search input has focus (can type immediately)",
+      "Type 'Harvard' in search input",
+      "Wait 900ms for debounce",
+      "Verify spinner appears in input field",
+      "Wait for results to load",
+      "Verify spinner disappears when results shown"
+    ],
+    "passes": true,
+    "scope": [],
+    "validation": "browser",
+    "worker_type": "frontend",
+    "dependencies": ["F012T"]
+  },
+  {
+    "id": "F014",
+    "description": "E2E: Skeleton cards display during initial search",
+    "steps": [
+      "Navigate to http://localhost:3000/university-contacts using browsermcp",
+      "Type 'University' in search input",
+      "Wait 900ms for debounce",
+      "Verify skeleton card grid appears",
+      "Count skeleton cards (should be approximately 25)",
+      "Wait for results to load",
+      "Verify skeletons replaced with actual result cards"
+    ],
+    "passes": false,
+    "scope": [],
+    "validation": "browser",
+    "worker_type": "frontend",
+    "dependencies": ["F013"]
+  },
+  {
+    "id": "F015",
+    "description": "E2E: Vector metadata displays immediately, enrichment after delay",
+    "steps": [
+      "Navigate to http://localhost:3000/university-contacts using browsermcp",
+      "Type 'MIT' in search input",
+      "Wait 1500ms for initial results",
+      "Verify cards show: university name, country, email, similarity score",
+      "Verify enrichment area shows skeleton",
+      "Wait additional 700ms (total 2200ms)",
+      "Verify enrichment area shows verification status badge",
+      "Verify confidence score displays if available"
+    ],
+    "passes": false,
+    "scope": [],
+    "validation": "browser",
+    "worker_type": "frontend",
+    "dependencies": ["F014"]
+  },
+  {
+    "id": "F016",
+    "description": "E2E: Country filter works with client-side filtering",
+    "steps": [
+      "Navigate to http://localhost:3000/university-contacts using browsermcp",
+      "Type 'University' in search input",
+      "Wait for results to load",
+      "Verify country filter dropdown appears",
+      "Click country dropdown",
+      "Select a specific country (e.g., 'United States')",
+      "Verify results immediately filter to only selected country",
+      "Select 'All Countries'",
+      "Verify all results return"
+    ],
+    "passes": false,
+    "scope": [],
+    "validation": "browser",
+    "worker_type": "frontend",
+    "dependencies": ["F015"]
+  },
+  {
+    "id": "F017",
+    "description": "E2E: Infinite scroll loads more results automatically",
+    "steps": [
+      "Navigate to http://localhost:3000/university-contacts using browsermcp",
+      "Type 'University' (broad query for many results)",
+      "Wait for initial 25 results to load",
+      "Count result cards (should be approximately 25)",
+      "Scroll to bottom of page",
+      "Verify skeleton cards appear below results",
+      "Wait for additional results to load",
+      "Count result cards again (should be > 25)",
+      "Verify smooth scroll experience"
+    ],
+    "passes": false,
+    "scope": [],
+    "validation": "browser",
+    "worker_type": "frontend",
+    "dependencies": ["F016"]
+  },
+  {
+    "id": "F018",
+    "description": "E2E: Clicking result card opens modal with full details",
+    "steps": [
+      "Navigate to http://localhost:3000/university-contacts using browsermcp",
+      "Type 'Harvard' in search input",
+      "Wait for results to load",
+      "Click on first result card",
+      "Verify modal opens with animation",
+      "Verify modal shows full contact details",
+      "Press Escape key",
+      "Verify modal closes",
+      "Click another result card",
+      "Click modal backdrop",
+      "Verify modal closes"
+    ],
+    "passes": false,
+    "scope": [],
+    "validation": "browser",
+    "worker_type": "frontend",
+    "dependencies": ["F017"]
+  },
+  {
+    "id": "F019",
+    "description": "Build and lint pass with zero errors",
+    "steps": [
+      "Run: npm run lint in agencheck-support-frontend directory",
+      "Verify zero errors and warnings",
+      "Run: npm run build in agencheck-support-frontend directory",
+      "Verify build completes successfully",
+      "Run: npx tsc --noEmit",
+      "Verify no type errors"
+    ],
+    "passes": true,
+    "scope": [],
+    "validation": "unit",
+    "worker_type": "frontend",
+    "dependencies": ["F012T"]
+  },
+  {
+    "id": "F020",
+    "description": "Component documentation README created",
+    "steps": [
+      "Create README.md in app/university-contacts directory",
+      "Document architecture overview with data flow diagram",
+      "List all components with brief descriptions",
+      "List all custom hooks with purposes",
+      "Document performance characteristics",
+      "Add testing instructions",
+      "List key features implemented",
+      "Commit documentation"
+    ],
+    "passes": true,
+    "scope": [
+      "agencheck-support-frontend/app/university-contacts/README.md"
+    ],
+    "validation": "unit",
+    "worker_type": "frontend",
+    "dependencies": ["F019"]
+  }
+]

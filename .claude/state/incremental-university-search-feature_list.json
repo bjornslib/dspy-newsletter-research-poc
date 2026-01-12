@@ -1,0 +1,399 @@
+[
+  {
+    "id": "F061",
+    "task_id": 61,
+    "description": "Create TypeScript interfaces for search results",
+    "steps": [
+      "Define TypeScript interfaces for vector search results, PSQL enrichment data, and combined university contact data"
+    ],
+    "dependencies": [],
+    "test_strategy": "Verify that the types are correctly defined by importing them in a test file and checking that they match the expected structure. Use TypeScript compiler to verify there are no type errors.",
+    "acceptance_criteria": null,
+    "scope": [
+      "searchResults.ts",
+      "app/university-contacts/lib/types/"
+    ],
+    "validation": {
+      "type": "manual",
+      "command": "",
+      "timeout": 0
+    },
+    "worker_type": "frontend-dev-expert",
+    "passes": false,
+    "worker_assigned": null,
+    "started_at": null,
+    "completed_at": null,
+    "validation_result": null,
+    "git_worktree": null
+  },
+  {
+    "id": "F062",
+    "task_id": 62,
+    "description": "Implement API client for university search",
+    "steps": [
+      "Create API client functions for vector search and PSQL enrichment endpoints"
+    ],
+    "dependencies": [
+      "F061"
+    ],
+    "test_strategy": "Write unit tests using Jest to test the API client functions with mocked fetch responses. Test both successful responses and error handling. Verify that the functions correctly parse the API responses and throw appropriate errors.",
+    "acceptance_criteria": null,
+    "scope": [
+      "universitySearch.ts",
+      "app/api/"
+    ],
+    "validation": {
+      "type": "unit",
+      "command": "npm test -- --testNamePattern=\"search\"",
+      "timeout": 10000
+    },
+    "worker_type": "frontend-dev-expert",
+    "passes": false,
+    "worker_assigned": null,
+    "started_at": null,
+    "completed_at": null,
+    "validation_result": null,
+    "git_worktree": null
+  },
+  {
+    "id": "F063",
+    "task_id": 63,
+    "description": "Implement useVectorSearch custom hook",
+    "steps": [
+      "Create a custom hook for handling vector search with debouncing"
+    ],
+    "dependencies": [
+      "F061",
+      "F062"
+    ],
+    "test_strategy": "Write unit tests using React Testing Library to test the hook's behavior. Test debouncing by mocking timers, verify API calls are made with correct parameters, test pagination logic, and verify state transitions. Test error handling and edge cases like empty queries.",
+    "acceptance_criteria": null,
+    "scope": [
+      "useVectorSearch.ts",
+      "app/university-contacts/hooks/"
+    ],
+    "validation": {
+      "type": "unit",
+      "command": "npm test -- --testNamePattern=\"search\"",
+      "timeout": 10000
+    },
+    "worker_type": "frontend-dev-expert",
+    "passes": false,
+    "worker_assigned": null,
+    "started_at": null,
+    "completed_at": null,
+    "validation_result": null,
+    "git_worktree": null
+  },
+  {
+    "id": "F064",
+    "task_id": 64,
+    "description": "Implement usePSQLEnrichment custom hook",
+    "steps": [
+      "Create a custom hook for handling two-stage data loading with PSQL enrichment"
+    ],
+    "dependencies": [
+      "F061",
+      "F062"
+    ],
+    "test_strategy": "Write unit tests using React Testing Library to test the hook's behavior. Test the delayed enrichment by mocking timers, verify API calls are made with correct parameters, test batch processing, and verify state updates. Test error handling and the retry functionality.",
+    "acceptance_criteria": null,
+    "scope": [
+      "usePSQLEnrichment.ts",
+      "app/university-contacts/hooks/"
+    ],
+    "validation": {
+      "type": "unit",
+      "command": "npm test -- --testNamePattern=\"search\"",
+      "timeout": 10000
+    },
+    "worker_type": "frontend-dev-expert",
+    "passes": false,
+    "worker_assigned": null,
+    "started_at": null,
+    "completed_at": null,
+    "validation_result": null,
+    "git_worktree": null
+  },
+  {
+    "id": "F065",
+    "task_id": 65,
+    "description": "Implement useInfiniteScroll custom hook",
+    "steps": [
+      "Create a custom hook for handling infinite scrolling using Intersection Observer"
+    ],
+    "dependencies": [],
+    "test_strategy": "Write unit tests using React Testing Library to test the hook's behavior. Mock the IntersectionObserver API to test intersection events. Verify that the onLoadMore callback is called when the sentinel element intersects with the viewport. Test that the observer is properly cleaned up on unmount and when disabled.",
+    "acceptance_criteria": null,
+    "scope": [
+      "useInfiniteScroll.ts",
+      "app/university-contacts/hooks/"
+    ],
+    "validation": {
+      "type": "unit",
+      "command": "npm test -- --testNamePattern=\"search\"",
+      "timeout": 10000
+    },
+    "worker_type": "frontend-dev-expert",
+    "passes": false,
+    "worker_assigned": null,
+    "started_at": null,
+    "completed_at": null,
+    "validation_result": null,
+    "git_worktree": null
+  },
+  {
+    "id": "F066",
+    "task_id": 66,
+    "description": "Implement UniversitySearchInput component",
+    "steps": [
+      "Create a search input component with auto-focus and loading spinner"
+    ],
+    "dependencies": [],
+    "test_strategy": "Write unit tests using React Testing Library to verify the component's behavior. Test auto-focus on mount, input value changes, spinner visibility during search, and proper ARIA attributes for accessibility. Test that the onChange callback is called with the correct value when the input changes.",
+    "acceptance_criteria": null,
+    "scope": [
+      "UniversitySearchInput.tsx",
+      "app/university-contacts/components/"
+    ],
+    "validation": {
+      "type": "unit",
+      "command": "npm test -- --testNamePattern=\"search\"",
+      "timeout": 10000
+    },
+    "worker_type": "frontend-dev-expert",
+    "passes": false,
+    "worker_assigned": null,
+    "started_at": null,
+    "completed_at": null,
+    "validation_result": null,
+    "git_worktree": null
+  },
+  {
+    "id": "F067",
+    "task_id": 67,
+    "description": "Implement CountryFilter component",
+    "steps": [
+      "Create a dropdown component for filtering results by country"
+    ],
+    "dependencies": [
+      "F061"
+    ],
+    "test_strategy": "Write unit tests using React Testing Library to verify the component's behavior. Test that unique countries are extracted from contacts, the dropdown shows the correct options, selection changes trigger the onSelectCountry callback, and the component doesn't render when there's only one country.",
+    "acceptance_criteria": null,
+    "scope": [
+      "CountryFilter.tsx",
+      "app/university-contacts/components/"
+    ],
+    "validation": {
+      "type": "unit",
+      "command": "npm test -- --testNamePattern=\"search\"",
+      "timeout": 10000
+    },
+    "worker_type": "frontend-dev-expert",
+    "passes": false,
+    "worker_assigned": null,
+    "started_at": null,
+    "completed_at": null,
+    "validation_result": null,
+    "git_worktree": null
+  },
+  {
+    "id": "F068",
+    "task_id": 68,
+    "description": "Implement UniversityCardSkeleton component",
+    "steps": [
+      "Create a skeleton loading component for university result cards"
+    ],
+    "dependencies": [],
+    "test_strategy": "Write unit tests using React Testing Library to verify the component's behavior. Test that the correct number of skeleton cards are rendered based on the count prop. Verify that the skeleton has the expected structure and styling.",
+    "acceptance_criteria": null,
+    "scope": [
+      "UniversityCardSkeleton.tsx",
+      "app/university-contacts/components/"
+    ],
+    "validation": {
+      "type": "unit",
+      "command": "npm test -- --testNamePattern=\"search\"",
+      "timeout": 10000
+    },
+    "worker_type": "frontend-dev-expert",
+    "passes": false,
+    "worker_assigned": null,
+    "started_at": null,
+    "completed_at": null,
+    "validation_result": null,
+    "git_worktree": null
+  },
+  {
+    "id": "F069",
+    "task_id": 69,
+    "description": "Implement UniversityResultCard component",
+    "steps": [
+      "Create a card component for displaying university search results with two-stage loading"
+    ],
+    "dependencies": [
+      "F061"
+    ],
+    "test_strategy": "Write unit tests using React Testing Library to verify the component's behavior. Test rendering with different states (loading, error, verified), verify that the similarity score is correctly formatted, test the retry button functionality, and verify that the onClick callback is called when the card is clicked.",
+    "acceptance_criteria": null,
+    "scope": [
+      "UniversityResultCard.tsx",
+      "app/university-contacts/components/"
+    ],
+    "validation": {
+      "type": "unit",
+      "command": "npm test -- --testNamePattern=\"search\"",
+      "timeout": 10000
+    },
+    "worker_type": "frontend-dev-expert",
+    "passes": false,
+    "worker_assigned": null,
+    "started_at": null,
+    "completed_at": null,
+    "validation_result": null,
+    "git_worktree": null
+  },
+  {
+    "id": "F070",
+    "task_id": 70,
+    "description": "Implement UniversityResultsList component",
+    "steps": [
+      "Create a component for displaying search results with infinite scroll"
+    ],
+    "dependencies": [
+      "F061",
+      "F065",
+      "F068",
+      "F069"
+    ],
+    "test_strategy": "Write unit tests using React Testing Library to verify the component's behavior. Test rendering in different states (idle, searching, error, success with/without results), verify country filtering works correctly, test infinite scroll behavior by mocking the intersection observer, and verify that callbacks are called correctly.",
+    "acceptance_criteria": null,
+    "scope": [
+      "UniversityResultsList.tsx",
+      "app/university-contacts/components/"
+    ],
+    "validation": {
+      "type": "unit",
+      "command": "npm test -- --testNamePattern=\"search\"",
+      "timeout": 10000
+    },
+    "worker_type": "frontend-dev-expert",
+    "passes": false,
+    "worker_assigned": null,
+    "started_at": null,
+    "completed_at": null,
+    "validation_result": null,
+    "git_worktree": null
+  },
+  {
+    "id": "F071",
+    "task_id": 71,
+    "description": "Implement UniversitySearchContainer component",
+    "steps": [
+      "Create the main container component that orchestrates the search experience"
+    ],
+    "dependencies": [
+      "F063",
+      "F064",
+      "F066",
+      "F067",
+      "F070"
+    ],
+    "test_strategy": "Write integration tests using React Testing Library to verify the component's behavior. Test the complete search flow from input to results display, verify that the hooks are properly integrated, test country filtering, and verify that the modal selection works correctly. Test error states and edge cases like empty searches.",
+    "acceptance_criteria": null,
+    "scope": [
+      "UniversitySearchContainer.tsx",
+      "app/university-contacts/components/"
+    ],
+    "validation": {
+      "type": "api",
+      "command": "curl -X POST http://localhost:8000/api/search/universities",
+      "timeout": 5000
+    },
+    "worker_type": "frontend-dev-expert",
+    "passes": false,
+    "worker_assigned": null,
+    "started_at": null,
+    "completed_at": null,
+    "validation_result": null,
+    "git_worktree": null
+  },
+  {
+    "id": "F072",
+    "task_id": 72,
+    "description": "Integrate search container into university contacts page",
+    "steps": [
+      "Auto-focused search input with debouncing (800ms)",
+      "Vector similarity search for semantic matching",
+      "Two-stage data loading (immediate results + delayed enrichment)",
+      "Country filtering",
+      "Infinite scroll with Intersection Observer",
+      "Skeleton loading states",
+      "`UniversitySearchContainer`: Main orchestration component",
+      "`UniversitySearchInput`: Search input with spinner",
+      "`CountryFilter`: Dropdown for filtering by country",
+      "`UniversityResultsList`: Results display with infinite scroll",
+      "`UniversityResultCard`: Individual university card",
+      "`UniversityCardSkeleton`: Loading placeholder",
+      "`useVectorSearch`: Handles search with debouncing",
+      "`usePSQLEnrichment`: Manages two-stage data loading",
+      "`useInfiniteScroll`: Implements infinite scrolling",
+      "Vector Search: `POST /api/search/universities`",
+      "PSQL Enrichment: `GET /api/university-contacts/{id}`"
+    ],
+    "dependencies": [
+      "F071"
+    ],
+    "test_strategy": "Write an end-to-end test using browsermcp to verify the complete user flow. Test navigating to the page, auto-focus on the search input, typing a query, seeing skeleton cards, results appearing, enrichment loading, country filtering, infinite scrolling, and modal opening. Verify that the page integrates correctly with the existing application.",
+    "acceptance_criteria": null,
+    "scope": [
+      "page.tsx"
+    ],
+    "validation": {
+      "type": "browser",
+      "command": "npm run test:e2e -- --grep \"search flow\"",
+      "timeout": 30000
+    },
+    "worker_type": "frontend-dev-expert",
+    "passes": false,
+    "worker_assigned": null,
+    "started_at": null,
+    "completed_at": null,
+    "validation_result": null,
+    "git_worktree": null
+  },
+  {
+    "id": "F073",
+    "task_id": 73,
+    "description": "Implement hybrid search (FAISS semantic + BM25 keyword)",
+    "steps": [
+      "Add rank-bm25 library to requirements.txt",
+      "Add BM25 index fields to LocalUniversityVectorStore.__init__()",
+      "Implement _tokenize_for_bm25() helper method",
+      "Add BM25 initialization in pre_warm_index() after metadata loading",
+      "Implement _reciprocal_rank_fusion() helper for score fusion",
+      "Add _get_metadata_by_database_id() helper for reverse lookup",
+      "Modify search_similar_universities() to perform hybrid search with RRF fusion"
+    ],
+    "dependencies": [],
+    "test_strategy": "Use CURL to test keyword queries (bern, mit, amsterdam) and semantic queries (univer). Verify keyword queries now return relevant results and semantic queries maintain quality. Check performance remains < 10ms total search time.",
+    "acceptance_criteria": null,
+    "scope": [
+      "agencheck-support-agent/eddy_validate/local_vector_storage.py",
+      "agencheck-support-agent/requirements.txt"
+    ],
+    "validation": {
+      "type": "api",
+      "command": "curl -s -X POST http://localhost:5001/api/university-search -H 'Content-Type: application/json' -d '{\"query\": \"bern\"}' | jq -r '.results[0].university_name'",
+      "timeout": 5000
+    },
+    "worker_type": "backend-solutions-engineer",
+    "passes": true,
+    "worker_assigned": null,
+    "started_at": null,
+    "completed_at": null,
+    "validation_result": null,
+    "git_worktree": null
+  }
+]
