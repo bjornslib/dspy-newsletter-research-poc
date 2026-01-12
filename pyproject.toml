@@ -1,0 +1,36 @@
+[project]
+name = "dspy-newsletter-research"
+version = "0.1.0"
+description = "DSPy Newsletter Research Tool PoC"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "dspy>=2.5.0",
+    "weaviate-client>=4.0.0",
+    "openai>=1.0.0",
+    "cohere>=5.0.0",
+    "python-dotenv>=1.0.0",
+    "pydantic>=2.0.0",
+    "docker>=7.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]

@@ -77,7 +77,8 @@ class TestWeaviateConnection:
         client = weaviate.connect_to_local()
         try:
             collections = client.collections.list_all()
-            collection_names = [c.name for c in collections]
+            # list_all() returns a dict where keys are collection names
+            collection_names = list(collections.keys())
             assert 'NewsletterArticles' in collection_names, \
                 "NewsletterArticles collection should exist"
         finally:
@@ -136,10 +137,15 @@ class TestDSPyConfiguration:
         configure_dspy()
         assert dspy.settings.lm is not None, "DSPy LM should be configured"
 
-    def test_dspy_supports_typed_predictor(self):
-        """Test DSPy TypedPredictor is available."""
-        from dspy import TypedPredictor
-        assert TypedPredictor is not None
+    def test_dspy_supports_typed_signatures(self):
+        """Test DSPy Signature (typed predictor) is available.
+
+        Note: In DSPy 3.x, TypedPredictor is replaced by using
+        dspy.Signature with Pydantic models for typed outputs.
+        """
+        from dspy import Signature, Predict
+        assert Signature is not None
+        assert Predict is not None
 
     def test_dspy_supports_chain_of_thought(self):
         """Test DSPy ChainOfThought is available."""
