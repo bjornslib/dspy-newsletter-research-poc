@@ -107,38 +107,37 @@ class TestDeduplicationStage:
 
     def test_duplicate_articles_removed(self, sample_rss_articles):
         """Test that duplicate articles are filtered out."""
-        from src.deduplication import URLDeduplicator
+        from src.deduplication import DuplicateIndex, ContentHashGenerator
 
-        deduplicator = URLDeduplicator()
+        index = DuplicateIndex()
+        hash_gen = ContentHashGenerator()
 
         unique_articles = []
         for article in sample_rss_articles:
+            # Use URL as a simple hash key for URL-based deduplication
             url = article.get('source_url', '')
-            if not deduplicator.is_duplicate(url):
+            url_hash = hash_gen.generate(url, '')
+
+            if not index.is_duplicate(url_hash):
                 unique_articles.append(article)
-                deduplicator.add(url)
+                index.add(url_hash, url)
 
         # Original: 4 articles, 1 duplicate URL
         assert len(unique_articles) == 3
 
-    def test_simhash_detects_near_duplicates(self, sample_rss_articles):
-        """Test that SimHash detects content near-duplicates."""
-        from src.deduplication import SimHashDeduplicator
+    def test_fuzzy_detects_near_duplicates(self, sample_rss_articles):
+        """Test that FuzzyMatcher detects content near-duplicates."""
+        from src.deduplication import FuzzyMatcher
 
-        deduplicator = SimHashDeduplicator(threshold=5)
+        matcher = FuzzyMatcher(threshold=0.8)
 
         # First FCRA article
         content1 = f"{sample_rss_articles[0]['title']} {sample_rss_articles[0]['description']}"
         # Duplicate FCRA article (identical content)
         content2 = f"{sample_rss_articles[3]['title']} {sample_rss_articles[3]['description']}"
 
-        hash1 = deduplicator.compute_hash(content1)
-        deduplicator.add(hash1, "article-1")
-
-        hash2 = deduplicator.compute_hash(content2)
-
-        # Should detect as duplicate
-        is_dup, _ = deduplicator.find_duplicate(hash2)
+        # Should detect as duplicate (identical content)
+        is_dup = matcher.is_duplicate(content1, content2)
         assert is_dup
 
 
@@ -198,7 +197,8 @@ class TestClassificationStage:
         )
 
         region = result.classification.region
-        assert region.value in ['N_AMERICA_CARIBBEAN', 'WORLDWIDE']
+        # Region enum values are lowercase
+        assert region.value in ['n_america_caribbean', 'worldwide']
 
     def test_articles_classified_by_topics(self, sample_rss_articles):
         """Test that articles are correctly classified by topics."""
@@ -252,20 +252,22 @@ class TestStorageStage:
         with patch('src.storage.weaviate') as mock_weaviate:
             mock_weaviate.connect_to_local.return_value = mock_weaviate_client
 
-            # Configure mock to return search results
-            mock_result = MagicMock()
-            mock_result.properties = {
-                'title': 'FCRA Compliance',
-                'content': 'Background screening requirements',
-                'relevance_score': 85.0,
-            }
-            mock_weaviate_client.collections.get.return_value.query.hybrid.return_value = [mock_result]
-
             store = ArticleStore(client=mock_weaviate_client)
+
+            # Insert an article to search for
+            article_data = {
+                'title': 'FCRA Compliance Guidelines',
+                'content': 'Background screening requirements for employers',
+                'source_url': 'https://example.com/fcra',
+            }
+            store.insert(article_data)
+
+            # Search for it
             results = store.search("FCRA compliance", limit=5)
 
-            # Search was called
-            assert mock_weaviate_client.collections.get.return_value.query.hybrid.called
+            # Verify search returns results
+            assert len(results) > 0
+            assert 'FCRA' in results[0].get('title', '')
 
 
 # =============================================================================
@@ -277,19 +279,21 @@ class TestFullPipeline:
 
     def test_pipeline_processes_articles_end_to_end(self, sample_rss_articles, mock_weaviate_client):
         """Test full pipeline: Ingest → Dedupe → Filter → Classify → Store."""
-        from src.deduplication import URLDeduplicator
+        from src.deduplication import DuplicateIndex, ContentHashGenerator
         from src.prefilter import TinyLMRelevanceFilter
         from src.classification import ClassificationModule
         from src.storage import ArticleStore
 
         # Stage 1: Deduplication
-        url_deduplicator = URLDeduplicator()
+        index = DuplicateIndex()
+        hash_gen = ContentHashGenerator()
         unique_articles = []
         for article in sample_rss_articles:
             url = article.get('source_url', '')
-            if not url_deduplicator.is_duplicate(url):
+            url_hash = hash_gen.generate(url, '')
+            if not index.is_duplicate(url_hash):
                 unique_articles.append(article)
-                url_deduplicator.add(url)
+                index.add(url_hash, url)
 
         assert len(unique_articles) == 3  # 4 - 1 duplicate
 
@@ -348,14 +352,14 @@ class TestFullPipeline:
 
     def test_pipeline_handles_empty_input(self, mock_weaviate_client):
         """Test pipeline handles empty article list gracefully."""
-        from src.deduplication import URLDeduplicator
+        from src.deduplication import Deduplicator
         from src.prefilter import batch_filter
 
         empty_articles = []
 
         # Deduplication on empty list
-        deduplicator = URLDeduplicator()
-        unique = [a for a in empty_articles if not deduplicator.is_duplicate(a.get('source_url', ''))]
+        deduplicator = Deduplicator()
+        unique = deduplicator.deduplicate(empty_articles)
         assert len(unique) == 0
 
         # Pre-filter on empty list
@@ -441,7 +445,7 @@ class TestPipelineMetrics:
 
     def test_pipeline_reports_processing_counts(self, sample_rss_articles):
         """Test that pipeline reports counts at each stage."""
-        from src.deduplication import URLDeduplicator
+        from src.deduplication import DuplicateIndex, ContentHashGenerator
         from src.prefilter import batch_filter, get_prefilter_stats
 
         # Track counts
@@ -451,25 +455,27 @@ class TestPipelineMetrics:
             'after_filter': 0,
         }
 
-        # Deduplication
-        deduplicator = URLDeduplicator()
+        # Deduplication (URL-based)
+        index = DuplicateIndex()
+        hash_gen = ContentHashGenerator()
         unique_articles = []
         for article in sample_rss_articles:
             url = article.get('source_url', '')
-            if not deduplicator.is_duplicate(url):
+            url_hash = hash_gen.generate(url, '')
+            if not index.is_duplicate(url_hash):
                 unique_articles.append(article)
-                deduplicator.add(url)
+                index.add(url_hash, url)
         metrics['after_dedup'] = len(unique_articles)
 
-        # Pre-filter
-        filtered = batch_filter(unique_articles, threshold=0.4)
+        # Pre-filter (using 'description' field which our test data uses)
+        filtered = batch_filter(unique_articles, threshold=0.4, content_field='description')
         passed = [a for a in filtered if a.get('prefilter_passed', False)]
         metrics['after_filter'] = len(passed)
 
         # Verify metrics
         assert metrics['input'] == 4
         assert metrics['after_dedup'] == 3  # 1 duplicate removed
-        assert metrics['after_filter'] >= 2  # At least 2 relevant
+        assert metrics['after_filter'] >= 2  # At least 2 relevant (FCRA and GDPR)
         assert metrics['after_filter'] <= metrics['after_dedup']
 
     def test_prefilter_stats_calculated_correctly(self, sample_rss_articles):
