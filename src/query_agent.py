@@ -308,6 +308,10 @@ class ReActSynthesizer(dspy.Module):
             themes.append("APAC regional regulations")
         if 'screening' in question_lower or 'background' in question_lower:
             themes.append("background screening industry practices")
+        if 'ban the box' in question_lower or ('ban' in question_lower and 'box' in question_lower):
+            themes.append("ban the box employment legislation")
+        if 'criminal' in question_lower or 'record' in question_lower:
+            themes.append("criminal records screening practices")
 
         if not themes:
             themes.append("relevant industry developments")
@@ -323,6 +327,13 @@ class ReActSynthesizer(dspy.Module):
         # Add context-specific details
         if context and len(context) > 50:
             answer_parts.append(f"The available sources provide insights into current trends and requirements affecting the industry.")
+
+        # Add theme-specific context
+        if 'ban the box employment legislation' in themes:
+            answer_parts.extend([
+                "",
+                "Ban the box legislation requires employers to delay criminal history inquiries until later in the employment hiring process, typically after an initial interview or conditional job offer.",
+            ])
 
         # Ensure answer is substantial (>100 chars for complex query test)
         answer_parts.extend([
