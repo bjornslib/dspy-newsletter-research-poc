@@ -1,0 +1,295 @@
+[
+  {
+    "id": "F001",
+    "description": "Backend includes additional_contacts_count in FAISS vector metadata",
+    "steps": [
+      "Open agencheck-support-agent/eddy_validate/refresh_vectors.py",
+      "Locate university_data dictionary construction around line 181-206",
+      "Add 'additional_contacts_count': row.get('additional_contacts_count', 0) after citations field",
+      "Verify change with: grep -A 5 'additional_contacts_count' refresh_vectors.py",
+      "Confirm field is included in metadata dictionary"
+    ],
+    "passes": true,
+    "scope": [
+      "agencheck-support-agent/eddy_validate/refresh_vectors.py"
+    ],
+    "validation": "unit",
+    "worker_type": "backend",
+    "dependencies": []
+  },
+  {
+    "id": "F002",
+    "description": "Backend search results include additional_contacts_count field",
+    "steps": [
+      "Open agencheck-support-agent/eddy_validate/local_vector_storage.py",
+      "Locate search_similar_universities() method result dictionary around line 680-711",
+      "Add 'additional_contacts_count': metadata.get('additional_contacts_count', 0) to results dict",
+      "Verify change with: grep -A 2 'additional_contacts_count' local_vector_storage.py",
+      "Test with: curl -X POST http://localhost:8000/api/search/universities -d '{\"query\":\"Oxford\"}' | jq '.results[0].additional_contacts_count'",
+      "Confirm field returns number (not null)"
+    ],
+    "passes": true,
+    "scope": [
+      "agencheck-support-agent/eddy_validate/local_vector_storage.py"
+    ],
+    "validation": "api",
+    "worker_type": "backend",
+    "dependencies": [
+      "F001"
+    ]
+  },
+  {
+    "id": "F003",
+    "description": "FAISS vectors rebuilt with additional_contacts_count metadata",
+    "steps": [
+      "Backup existing vectors: cp vectors/metadata.json vectors/metadata.json.backup-$(date +%Y%m%d)",
+      "Run: cd agencheck-support-agent/eddy_validate && python refresh_vectors.py",
+      "Verify metadata includes count: cat vectors/metadata.json | jq '.[0].additional_contacts_count'",
+      "Test search returns count: curl -X POST http://localhost:8000/api/search/universities -d '{\"query\":\"Harvard\"}' | jq '.results[].additional_contacts_count'",
+      "Confirm all results have count field (not null)"
+    ],
+    "passes": true,
+    "scope": [
+      "agencheck-support-agent/eddy_validate/vectors/metadata.json",
+      "agencheck-support-agent/eddy_validate/vectors/university_contacts.faiss",
+      "agencheck-support-agent/eddy_validate/vectors/index_config.json"
+    ],
+    "validation": "api",
+    "worker_type": "backend",
+    "dependencies": [
+      "F001",
+      "F002"
+    ]
+  },
+  {
+    "id": "F004",
+    "description": "Frontend VectorSearchResult type includes additional_contacts_count",
+    "steps": [
+      "Open agencheck-support-frontend/app/university-contacts/lib/types/searchResults.ts",
+      "Locate VectorSearchResult interface around lines 6-20",
+      "Add 'additional_contacts_count?: number' field after phone field",
+      "Run: cd agencheck-support-frontend && npx tsc --noEmit",
+      "Verify: No TypeScript compilation errors"
+    ],
+    "passes": true,
+    "scope": [
+      "agencheck-support-frontend/app/university-contacts/lib/types/searchResults.ts"
+    ],
+    "validation": "unit",
+    "worker_type": "frontend",
+    "dependencies": [
+      "F003"
+    ]
+  },
+  {
+    "id": "F005",
+    "description": "UniversityContactSheet always fetches full contact data on open",
+    "steps": [
+      "Open agencheck-support-frontend/components/university/UniversityContactSheet.tsx",
+      "Locate skeleton detection useEffect around lines 391-410",
+      "Replace with simplified always-fetch pattern (check for department field for cache)",
+      "Remove isVerificationSkeleton() call",
+      "Run: npx tsc --noEmit",
+      "Verify: No TypeScript errors",
+      "Verify: useEffect triggers on isSheetOpen && selectedContactId"
+    ],
+    "passes": true,
+    "scope": [
+      "agencheck-support-frontend/components/university/UniversityContactSheet.tsx"
+    ],
+    "validation": "browser",
+    "worker_type": "frontend",
+    "dependencies": [
+      "F004"
+    ]
+  },
+  {
+    "id": "F006",
+    "description": "Unused skeleton helper functions removed from codebase",
+    "steps": [
+      "Search for buildContactFromSearchResult usage: grep -r 'buildContactFromSearchResult' --include='*.tsx' --include='*.ts'",
+      "Open agencheck-support-frontend/app/university-contacts/page.tsx",
+      "Replace handleCardClick with minimal contact pattern: {id, university_name}",
+      "Remove buildContactFromSearchResult import from verification-tool-helpers",
+      "Run: npx tsc --noEmit",
+      "Verify: No import errors or missing function references",
+      "Test: Sheet opens and triggers F005 fetch due to missing department field"
+    ],
+    "passes": true,
+    "scope": [
+      "agencheck-support-frontend/lib/verification-tool-helpers.ts",
+      "agencheck-support-frontend/app/university-contacts/page.tsx"
+    ],
+    "validation": "unit",
+    "worker_type": "frontend",
+    "dependencies": [
+      "F005"
+    ]
+  },
+  {
+    "id": "F007",
+    "description": "Frontend passes lint, TypeScript, and production build validation",
+    "steps": [
+      "Run: cd agencheck-support-frontend && npm run lint",
+      "Verify: Zero errors and warnings",
+      "Run: npx tsc --noEmit",
+      "Verify: No TypeScript type errors",
+      "Run: npm run build",
+      "Verify: Production build completes successfully",
+      "Run: npm run dev",
+      "Verify: Dev server starts on http://localhost:5001 with no console errors"
+    ],
+    "passes": true,
+    "scope": [],
+    "validation": "unit",
+    "worker_type": "frontend",
+    "dependencies": [
+      "F006"
+    ]
+  },
+  {
+    "id": "F008",
+    "description": "E2E tests verify complete contact data flow with browsermcp",
+    "steps": [
+      "Navigate to http://localhost:5001/university-contacts with browser_navigate",
+      "Search for 'Oxford' and verify additional_contacts_count badge displays",
+      "Verify icon badge shows correct count for contacts with count > 0",
+      "Click first card and verify sheet opens",
+      "Verify full contact data loaded (check for department, title fields not in search)",
+      "Verify additional contacts load and display when count > 0",
+      "Test cache: close and reopen sheet within 5min - verify no new API call",
+      "Test staleness: wait 5min or mock time - verify new API call on reopen",
+      "Capture screenshots for: search results with badge, sheet with full data, additional contacts in vertical stack",
+      "Create test report at documentation/test-reports/complete-contact-data-e2e-report.md"
+    ],
+    "passes": false,
+    "scope": [
+      "documentation/test-reports/complete-contact-data-e2e-report.md",
+      "test-results/*.png"
+    ],
+    "validation": "browser",
+    "worker_type": "frontend",
+    "dependencies": [
+      "F007",
+      "F011",
+      "F012",
+      "F013"
+    ]
+  },
+  {
+    "id": "F009",
+    "description": "Implementation verified compliant with CLAUDE.md requirements",
+    "steps": [
+      "Delegate to claude-md-compliance-checker agent with implementation summary",
+      "Review compliance report for violations",
+      "Verify all protocols followed: Technology stack, MCP integration, Task management, Testing, Build validation, Agent orchestration",
+      "Document compliance results in documentation/scratch-pads/complete-contact-data-validation.md",
+      "Address any violations found before marking complete"
+    ],
+    "passes": false,
+    "scope": [
+      "documentation/scratch-pads/complete-contact-data-validation.md"
+    ],
+    "validation": "unit",
+    "worker_type": "general",
+    "dependencies": [
+      "F008"
+    ]
+  },
+  {
+    "id": "F010",
+    "description": "Implementation patterns documented in Serena and Byterover memory",
+    "steps": [
+      "Store detailed learning in Serena: mcp__serena__write_memory('complete-contact-data-loading-2025-12-11', content)",
+      "Store pattern summary in Byterover: mcp__byterover-mcp__byterover-store-knowledge(content)",
+      "Verify memory storage: mcp__serena__list_memories()",
+      "Confirm new memory appears in list",
+      "Document memory storage in scratch pad validation file"
+    ],
+    "passes": false,
+    "scope": [
+      "documentation/scratch-pads/complete-contact-data-validation.md"
+    ],
+    "validation": "unit",
+    "worker_type": "general",
+    "dependencies": [
+      "F009"
+    ]
+  },
+  {
+    "id": "F011",
+    "description": "Display additional_contacts_count badge with icon on search result cards",
+    "steps": [
+      "Open agencheck-support-frontend/app/university-contacts/components/UniversityResultCard.tsx",
+      "Import Users icon from lucide-react at top of file",
+      "Locate badge rendering area around line 80-90 near country/verification badges",
+      "Add conditional badge when additional_contacts_count > 0",
+      "Use blue theme: bg-blue-50 text-blue-700 with Users icon and count number",
+      "Run: npx tsc --noEmit",
+      "Verify: No TypeScript errors",
+      "Test: Search for MIT (ID 192) and verify badge shows '2' with Users icon"
+    ],
+    "passes": true,
+    "scope": [
+      "agencheck-support-frontend/app/university-contacts/components/UniversityResultCard.tsx"
+    ],
+    "validation": "browser",
+    "worker_type": "frontend",
+    "dependencies": [
+      "F004"
+    ]
+  },
+  {
+    "id": "F012",
+    "description": "Load main contact + additional_contacts with 5-minute cache staleness",
+    "steps": [
+      "Open agencheck-support-frontend/stores/types/contacts.ts",
+      "Add lastFetched?: number field to ContactState interface",
+      "Open agencheck-support-frontend/stores/slices/contactDataSlice.ts",
+      "Update setContact to NOT set lastFetched (preserve existing value)",
+      "Update refreshContactFromDatabase to SET lastFetched: Date.now() on successful fetch",
+      "Open agencheck-support-frontend/components/university/UniversityContactSheet.tsx",
+      "Replace conditional needsLoad with cache staleness check (> 5min or no lastFetched)",
+      "Add console logs for 'Using cached contact' vs 'Refreshing stale contact'",
+      "Verify API route /api/university-contacts/[id] includes additional_contacts array",
+      "Run: npx tsc --noEmit",
+      "Test: Open sheet twice within 5min - second open should not call API"
+    ],
+    "passes": false,
+    "scope": [
+      "agencheck-support-frontend/stores/types/contacts.ts",
+      "agencheck-support-frontend/stores/slices/contactDataSlice.ts",
+      "agencheck-support-frontend/components/university/UniversityContactSheet.tsx",
+      "agencheck-support-frontend/app/api/university-contacts/route.ts"
+    ],
+    "validation": "browser",
+    "worker_type": "frontend",
+    "dependencies": [
+      "F005",
+      "F011"
+    ]
+  },
+  {
+    "id": "F013",
+    "description": "Verify existing UI displays additional contacts in vertical stack",
+    "steps": [
+      "Open agencheck-support-frontend/components/university/UniversityContactSheet.tsx",
+      "Verify UI maps over contact.additional_contacts array",
+      "Verify visual separators between main and additional contacts",
+      "Add defensive guards for malformed JSONB data (try-catch around mapping)",
+      "Add error message when count > 0 but additional_contacts missing",
+      "Test with MIT (ID 192): verify main + 2 additional contacts display",
+      "Verify all fields render: department, title, email, phone, citations",
+      "Screenshot vertical stack showing all 3 contacts"
+    ],
+    "passes": false,
+    "scope": [
+      "agencheck-support-frontend/components/university/UniversityContactSheet.tsx"
+    ],
+    "validation": "browser",
+    "worker_type": "frontend",
+    "dependencies": [
+      "F012"
+    ]
+  }
+]

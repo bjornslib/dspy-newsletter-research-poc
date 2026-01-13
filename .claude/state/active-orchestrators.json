@@ -1,0 +1,65 @@
+{
+  "orchestrators": [
+    {
+      "name": "orch-e2e-harness",
+      "worktree": "../agencheck-e2e-harness",
+      "branch": "feature/e2e-test-harness",
+      "status": "prd-updated-awaiting-implementation",
+      "started_at": "2025-12-30T21:09:00Z",
+      "phase1_completed_at": "2025-12-31T10:30:00Z",
+      "phase2_prd_completed_at": "2025-12-31T13:20:00Z",
+      "initiative": "TRUE E2E Flow - Scheduler → LiveKit Wiring",
+      "mode": "prd-planning",
+      "phase1_note": "System 3 implemented Phase 1 directly due to orchestrator security violations (3x hardcoded secrets)",
+      "phase2_note": "Orchestrator wrote detailed Phase 2 & 3 PRD sections (429 lines) after context compact",
+      "prd_updated": ".taskmaster/docs/e2e-harness-prd.md",
+      "gaps_identified": [
+        "G1: Scheduler dispatch stub returns mock, not actual LiveKit call",
+        "G2: context_data schema mismatch (phone_numbers[] vs employer.phone_number)",
+        "G3: Results not stored to database after call",
+        "G4: case_id linkage needs proper context passing",
+        "G5: LiveKit credentials need centralized env var loading"
+      ],
+      "gaps_closed": ["G1", "G4", "G5"],
+      "gaps_remaining": ["G2", "G3"],
+      "implementation_phases": [
+        "Phase 1: Wire Scheduler → LiveKit (G1, G4, G5) - COMPLETE",
+        "Phase 2: Align Data Schemas (G2) - PRD COMPLETE, AWAITING IMPLEMENTATION",
+        "Phase 3: Results Storage (G3) - PRD COMPLETE, AWAITING IMPLEMENTATION",
+        "Phase 4: E2E Validation - BLOCKED on Phase 2/3"
+      ],
+      "files_created": [
+        "agencheck-support-agent/scheduler/livekit_dispatch.py"
+      ],
+      "files_modified": [
+        "agencheck-support-agent/scheduler/scheduler_service.py"
+      ]
+    },
+    {
+      "name": "orch-epic7-prd",
+      "worktree": "../agencheck-epic7-interpretation",
+      "branch": "feature/epic7-structured-interpretation",
+      "status": "stopped-at-gate",
+      "started_at": "2025-12-30T21:25:00Z",
+      "stopped_at": "2025-12-30T21:33:00Z",
+      "initiative": "Epic 7: Claude Code Structured Data Interpretation",
+      "mode": "prd-only",
+      "stop_gate": "STOP before implementation - user review required",
+      "outcome": "PRD delivered (25KB), awaiting user review",
+      "deliverable": ".taskmaster/docs/epic-7-structured-interpretation-prd.md"
+    },
+    {
+      "name": "orch-epic8-prd",
+      "worktree": "../agencheck-epic8-billing",
+      "branch": "feature/epic8-clerk-stripe-billing",
+      "status": "stopped-at-gate",
+      "started_at": "2025-12-30T21:25:00Z",
+      "stopped_at": "2025-12-30T21:35:00Z",
+      "initiative": "Epic 8: Customer Billing via Clerk + Stripe",
+      "mode": "prd-only",
+      "stop_gate": "STOP before implementation - user review required",
+      "outcome": "PRD delivered (51KB), awaiting user approval",
+      "deliverable": ".taskmaster/docs/epic-8-clerk-stripe-billing-prd.md"
+    }
+  ]
+}

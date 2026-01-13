@@ -1,0 +1,370 @@
+[
+  {
+    "id": "F074",
+    "task_id": 74,
+    "description": "Backend: Create browse mode API endpoint with sorting and pagination",
+    "steps": [
+      "Create Next.js API route at app/api/universities/browse/route.ts",
+      "Add FastAPI endpoint /api/universities/browse in main.py",
+      "Support query params: sortBy, sortOrder, country, offset, limit",
+      "Return: universities[], total, hasMore, offset, limit",
+      "Test with curl: verify sorting and pagination work"
+    ],
+    "dependencies": [],
+    "test_strategy": "API test - curl endpoint with different sort/filter params, verify response structure and data correctness",
+    "acceptance_criteria": "Browse endpoint returns 25 universities sorted A-Z by default, supports country filter, offset pagination works",
+    "scope": [
+      "agencheck-support-frontend/app/api/universities/browse/route.ts",
+      "agencheck-support-agent/main.py"
+    ],
+    "validation": {
+      "type": "api",
+      "command": "curl -s 'http://localhost:8000/api/universities/browse?sortBy=university_name&sortOrder=asc&offset=0&limit=5' | jq '.universities | length'",
+      "timeout": 5000
+    },
+    "worker_type": "backend-solutions-engineer",
+    "passes": true,
+    "worker_assigned": "backend-solutions-engineer",
+    "started_at": "2025-12-11T00:00:00Z",
+    "completed_at": "2025-12-11T00:00:00Z",
+    "validation_result": "Implemented FastAPI endpoint at /api/universities/browse with sorting (university_name, created_at), pagination (offset, limit), and country filter. Next.js proxy route created at app/api/universities/browse/route.ts.",
+    "git_worktree": null
+  },
+  {
+    "id": "F075",
+    "task_id": 75,
+    "description": "Backend: Add offset pagination to vector search in local_vector_storage.py",
+    "steps": [
+      "Update search_similar_universities signature: add offset parameter",
+      "Calculate fetch_k = offset + top_k",
+      "Perform FAISS + BM25 search with fetch_k",
+      "Apply country filter if provided",
+      "Return results[offset:offset+top_k] slice",
+      "Test in Python REPL: verify offset=0 and offset=5 return different universities"
+    ],
+    "dependencies": [],
+    "test_strategy": "Unit test in Python REPL - search with offset=0 and offset=5, verify no overlap in results",
+    "acceptance_criteria": "Vector search supports offset parameter, returns correct slice of results, no overlap between pages",
+    "scope": [
+      "agencheck-support-agent/eddy_validate/local_vector_storage.py"
+    ],
+    "validation": {
+      "type": "unit",
+      "command": "cd agencheck-support-agent && python3 -c \"from eddy_validate.local_vector_storage import LocalUniversityVectorStore; store = LocalUniversityVectorStore(); r1 = store.search_similar_universities('university', top_k=5, offset=0); r2 = store.search_similar_universities('university', top_k=5, offset=5); assert len(r1) == 5 and len(r2) == 5 and r1[0]['database_id'] != r2[0]['database_id']; print('PASS')\"",
+      "timeout": 10000
+    },
+    "worker_type": "backend-solutions-engineer",
+    "passes": false,
+    "worker_assigned": null,
+    "started_at": null,
+    "completed_at": null,
+    "validation_result": null,
+    "git_worktree": null
+  },
+  {
+    "id": "F076",
+    "task_id": 76,
+    "description": "Frontend: Update search API route to support offset parameter",
+    "steps": [
+      "Modify app/api/university-search/route.ts POST handler",
+      "Extract offset, limit, country from request body",
+      "Forward to backend with offset parameter",
+      "Return response with results, hasMore, offset"
+    ],
+    "dependencies": ["F075"],
+    "test_strategy": "API test - POST to /api/university-search with offset, verify response includes paginated results",
+    "acceptance_criteria": "Search API accepts offset parameter, forwards to backend, returns paginated results",
+    "scope": [
+      "agencheck-support-frontend/app/api/university-search/route.ts"
+    ],
+    "validation": {
+      "type": "api",
+      "command": "curl -s -X POST http://localhost:5001/api/university-search -H 'Content-Type: application/json' -d '{\"query\": \"university\", \"offset\": 0, \"limit\": 5}' | jq '.results | length'",
+      "timeout": 5000
+    },
+    "worker_type": "frontend-dev-expert",
+    "passes": false,
+    "worker_assigned": null,
+    "started_at": null,
+    "completed_at": null,
+    "validation_result": null,
+    "git_worktree": null
+  },
+  {
+    "id": "F077",
+    "task_id": 77,
+    "description": "Frontend: Create SortControls component with visibility animation",
+    "steps": [
+      "Create app/university-contacts/components/SortControls.tsx",
+      "Add Name and Date Added sort buttons with chevron icons",
+      "Implement toggle logic (asc/desc on same field, asc on field switch)",
+      "Add opacity transition based on isVisible prop",
+      "Test accessibility: keyboard navigation, aria-labels"
+    ],
+    "dependencies": [],
+    "test_strategy": "Manual test - render component, verify buttons toggle sort, opacity animates on isVisible change",
+    "acceptance_criteria": "SortControls shows Name and Date Added buttons, toggles asc/desc, fades out when isVisible=false",
+    "scope": [
+      "agencheck-support-frontend/app/university-contacts/components/SortControls.tsx"
+    ],
+    "validation": {
+      "type": "unit",
+      "command": "npm test -- SortControls --passWithNoTests",
+      "timeout": 10000
+    },
+    "worker_type": "frontend-dev-expert",
+    "passes": false,
+    "worker_assigned": null,
+    "started_at": null,
+    "completed_at": null,
+    "validation_result": null,
+    "git_worktree": null
+  },
+  {
+    "id": "F078",
+    "task_id": 78,
+    "description": "Frontend: Create InfiniteScrollSentinel component with IntersectionObserver",
+    "steps": [
+      "Create app/university-contacts/components/InfiniteScrollSentinel.tsx",
+      "Implement IntersectionObserver with threshold 0.1",
+      "Trigger onIntersect callback when sentinel visible",
+      "Show loading spinner when isLoading=true",
+      "Show 'No more results' when hasMore=false"
+    ],
+    "dependencies": [],
+    "test_strategy": "Unit test - mock IntersectionObserver, verify callback triggered on intersection",
+    "acceptance_criteria": "Sentinel triggers onIntersect when scrolled into view, shows loading/complete states correctly",
+    "scope": [
+      "agencheck-support-frontend/app/university-contacts/components/InfiniteScrollSentinel.tsx"
+    ],
+    "validation": {
+      "type": "unit",
+      "command": "npm test -- InfiniteScrollSentinel --passWithNoTests",
+      "timeout": 10000
+    },
+    "worker_type": "frontend-dev-expert",
+    "passes": false,
+    "worker_assigned": null,
+    "started_at": null,
+    "completed_at": null,
+    "validation_result": null,
+    "git_worktree": null
+  },
+  {
+    "id": "F079",
+    "task_id": 79,
+    "description": "Frontend: Create UniversitySearchControls component with sticky layout",
+    "steps": [
+      "Create app/university-contacts/components/UniversitySearchControls.tsx",
+      "Layout: Search input (left), Country filter (middle), Sort controls (right)",
+      "Add Search icon, Clear X button (conditional on query)",
+      "Add loading spinner inside input during search",
+      "Apply sticky positioning with z-10",
+      "Integrate SortControls with isVisible prop"
+    ],
+    "dependencies": ["F077"],
+    "test_strategy": "Visual test - render with different props, verify layout order and sticky behavior",
+    "acceptance_criteria": "Controls arranged left-to-right, sticky on scroll, search expands on focus, sort hides in search mode",
+    "scope": [
+      "agencheck-support-frontend/app/university-contacts/components/UniversitySearchControls.tsx"
+    ],
+    "validation": {
+      "type": "unit",
+      "command": "npm test -- UniversitySearchControls --passWithNoTests",
+      "timeout": 10000
+    },
+    "worker_type": "frontend-dev-expert",
+    "passes": false,
+    "worker_assigned": null,
+    "started_at": null,
+    "completed_at": null,
+    "validation_result": null,
+    "git_worktree": null
+  },
+  {
+    "id": "F080",
+    "task_id": 80,
+    "description": "Frontend: Create useBrowseMode custom hook for browse pagination",
+    "steps": [
+      "Create app/university-contacts/hooks/useBrowseMode.ts",
+      "State: universities[], offset, isLoading, hasMore, total, sortBy, sortOrder, error",
+      "loadUniversities function: fetch /api/universities/browse with params",
+      "loadMore function: increment offset, append results",
+      "reset function: clear state, reload from offset=0",
+      "changeSort function: update sort, reset offset, reload"
+    ],
+    "dependencies": ["F074"],
+    "test_strategy": "Integration test - use hook in test component, verify state updates on load/loadMore/changeSort",
+    "acceptance_criteria": "Hook manages browse state, loads initial 25, supports pagination and sorting",
+    "scope": [
+      "agencheck-support-frontend/app/university-contacts/hooks/useBrowseMode.ts"
+    ],
+    "validation": {
+      "type": "unit",
+      "command": "npm test -- useBrowseMode --passWithNoTests",
+      "timeout": 10000
+    },
+    "worker_type": "frontend-dev-expert",
+    "passes": false,
+    "worker_assigned": null,
+    "started_at": null,
+    "completed_at": null,
+    "validation_result": null,
+    "git_worktree": null
+  },
+  {
+    "id": "F081",
+    "task_id": 81,
+    "description": "Frontend: Enhance useVectorSearch hook with offset pagination",
+    "steps": [
+      "Modify app/university-contacts/hooks/useVectorSearch.ts",
+      "Add offset state variable",
+      "Implement loadMore function: POST with offset, append results",
+      "Implement reset function: clear offset and results",
+      "Return loadMore and reset in hook interface"
+    ],
+    "dependencies": ["F076"],
+    "test_strategy": "Integration test - use hook with query, verify results load, loadMore appends",
+    "acceptance_criteria": "Hook supports offset pagination, loadMore appends results, reset clears state",
+    "scope": [
+      "agencheck-support-frontend/app/university-contacts/hooks/useVectorSearch.ts"
+    ],
+    "validation": {
+      "type": "unit",
+      "command": "npm test -- useVectorSearch --passWithNoTests",
+      "timeout": 10000
+    },
+    "worker_type": "frontend-dev-expert",
+    "passes": false,
+    "worker_assigned": null,
+    "started_at": null,
+    "completed_at": null,
+    "validation_result": null,
+    "git_worktree": null
+  },
+  {
+    "id": "F082",
+    "task_id": 82,
+    "description": "Frontend: Enhance UniversityResultsList with infinite scroll",
+    "steps": [
+      "Modify app/university-contacts/components/UniversityResultsList.tsx",
+      "Add props: onLoadMore, hasMore, mode",
+      "Integrate InfiniteScrollSentinel at end of results grid",
+      "Pass onLoadMore, isLoading, hasMore to sentinel"
+    ],
+    "dependencies": ["F078"],
+    "test_strategy": "Integration test - render with mock data, scroll to bottom, verify onLoadMore called",
+    "acceptance_criteria": "List shows results grid, sentinel at bottom triggers onLoadMore when scrolled into view",
+    "scope": [
+      "agencheck-support-frontend/app/university-contacts/components/UniversityResultsList.tsx"
+    ],
+    "validation": {
+      "type": "unit",
+      "command": "npm test -- UniversityResultsList --passWithNoTests",
+      "timeout": 10000
+    },
+    "worker_type": "frontend-dev-expert",
+    "passes": false,
+    "worker_assigned": null,
+    "started_at": null,
+    "completed_at": null,
+    "validation_result": null,
+    "git_worktree": null
+  },
+  {
+    "id": "F083",
+    "task_id": 83,
+    "description": "Frontend: Integrate dual-mode in UniversitySearchContainer",
+    "steps": [
+      "Modify app/university-contacts/components/UniversitySearchContainer.tsx",
+      "Add state: mode ('browse'|'search'), searchQuery, selectedCountry",
+      "Initialize useBrowseMode and useVectorSearch hooks",
+      "Implement mode transition logic: query.length >= 2 → search, query === '' → browse",
+      "Integrate UniversitySearchControls with all handlers",
+      "Integrate UniversityResultsList with mode-aware props",
+      "Load initial browse results on mount"
+    ],
+    "dependencies": ["F079", "F080", "F081", "F082"],
+    "test_strategy": "E2E browser test - load page, verify browse mode default, type to search, clear to browse",
+    "acceptance_criteria": "Container defaults to browse mode, transitions to search after 2 chars, infinite scroll works in both modes",
+    "scope": [
+      "agencheck-support-frontend/app/university-contacts/components/UniversitySearchContainer.tsx"
+    ],
+    "validation": {
+      "type": "browser",
+      "command": "npx playwright test dual-mode-container.spec.ts --project=chromium --headed",
+      "timeout": 30000
+    },
+    "worker_type": "frontend-dev-expert",
+    "passes": false,
+    "worker_assigned": null,
+    "started_at": null,
+    "completed_at": null,
+    "validation_result": null,
+    "git_worktree": null
+  },
+  {
+    "id": "F084",
+    "task_id": 84,
+    "description": "Frontend: Run ESLint and production build validation",
+    "steps": [
+      "Run npm run lint, fix any errors/warnings",
+      "Run npm run build, ensure successful completion",
+      "Run npx tsc --noEmit, verify no type errors",
+      "Commit any fixes with clear messages"
+    ],
+    "dependencies": ["F083"],
+    "test_strategy": "Build validation - lint, build, type-check all pass with 0 errors",
+    "acceptance_criteria": "ESLint passes, production build succeeds, TypeScript validation clean",
+    "scope": [
+      "agencheck-support-frontend/**/*.ts",
+      "agencheck-support-frontend/**/*.tsx"
+    ],
+    "validation": {
+      "type": "unit",
+      "command": "cd agencheck-support-frontend && npm run lint && npm run build",
+      "timeout": 60000
+    },
+    "worker_type": "frontend-dev-expert",
+    "passes": false,
+    "worker_assigned": null,
+    "started_at": null,
+    "completed_at": null,
+    "validation_result": null,
+    "git_worktree": null
+  },
+  {
+    "id": "F085",
+    "task_id": 85,
+    "description": "E2E: Manual testing and validation report",
+    "steps": [
+      "Test browse mode default: 25 universities A-Z, sort buttons visible",
+      "Test sorting: Name toggle, Date Added toggle, persistence",
+      "Test infinite scroll: browse mode loads more on scroll",
+      "Test search activation: 2nd character triggers search mode",
+      "Test search mode: sort buttons fade out, search results by relevance",
+      "Test search infinite scroll: loads more search results",
+      "Test mode transitions: clear search returns to browse",
+      "Test responsive: desktop (3 col), tablet (2 col), mobile (1 col)",
+      "Document results in docs/test-reports/dual-mode-manual-testing.md"
+    ],
+    "dependencies": ["F084"],
+    "test_strategy": "Manual E2E testing across all scenarios, document with screenshots",
+    "acceptance_criteria": "All manual test scenarios pass, documented with results and evidence",
+    "scope": [
+      "docs/test-reports/dual-mode-manual-testing.md"
+    ],
+    "validation": {
+      "type": "manual",
+      "command": "",
+      "timeout": 0
+    },
+    "worker_type": "tdd-test-engineer",
+    "passes": false,
+    "worker_assigned": null,
+    "started_at": null,
+    "completed_at": null,
+    "validation_result": null,
+    "git_worktree": null
+  }
+]

@@ -1,0 +1,19 @@
+{
+    "version": "1.0",
+    "session_id": "cleanup",
+    "started_at": "2026-01-07T05:43:24Z",
+    "iteration": 1,
+    "max_iterations": 25,
+    "completion_promise": {
+        "raw_prompt": null,
+        "summary": null,
+        "extracted_at": null
+    },
+    "goals": [],
+    "prd": {
+        "source": null,
+        "epics": []
+    },
+    "progress_log": [],
+    "codebase_patterns": []
+}

@@ -1,0 +1,111 @@
+#!/bin/bash
+# cs-init - Initialize completion state and generate session ID
+#
+# Usage:
+#   eval "$(cs-init)"              # Initialize and export CLAUDE_SESSION_ID
+#   cs-init --show                 # Show current session ID without generating
+#   cs-init --check-orphans        # Check for orphaned in_progress promises
+#
+# The new architecture:
+#   - Promises are stored in .claude/completion-state/promises/{uuid}.json
+#   - Each promise tracks its owner session and status
+#   - Multiple sessions can run in parallel, each owning different promises
+#   - Session ID format: {timestamp}-{random8} (e.g., 20260110T142532Z-a7f3b9e1)
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+STATE_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}/.claude/completion-state"
+PROMISES_DIR="$STATE_DIR/promises"
+HISTORY_DIR="$STATE_DIR/history"
+
+MODE="init"
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --show)
+            MODE="show"
+            shift
+            ;;
+        --check-orphans)
+            MODE="check-orphans"
+            shift
+            ;;
+        --help)
+            echo "Usage:"
+            echo "  eval \"\$(cs-init)\"         # Initialize and export CLAUDE_SESSION_ID"
+            echo "  cs-init --show             # Show current session ID"
+            echo "  cs-init --check-orphans    # Check for orphaned in_progress promises"
+            echo ""
+            echo "Initializes the completion state system and generates a unique session ID."
+            echo "The session ID is used to track promise ownership across parallel sessions."
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1" >&2
+            exit 1
+            ;;
+    esac
+done
+
+case $MODE in
+    show)
+        if [ -n "$CLAUDE_SESSION_ID" ]; then
+            echo "Current session: $CLAUDE_SESSION_ID"
+        else
+            echo "No CLAUDE_SESSION_ID set. Run: eval \"\$(cs-init)\"" >&2
+            exit 1
+        fi
+        ;;
+
+    check-orphans)
+        if [ ! -d "$PROMISES_DIR" ]; then
+            echo "No promises directory found."
+            exit 0
+        fi
+
+        echo "Checking for orphaned in_progress promises..."
+        ORPHANS=0
+        for f in "$PROMISES_DIR"/*.json; do
+            [ -f "$f" ] || continue
+            STATUS=$(jq -r '.status // "unknown"' "$f")
+            OWNER=$(jq -r '.ownership.owned_by // "null"' "$f")
+            if [ "$STATUS" = "in_progress" ] && [ "$OWNER" = "null" ]; then
+                ID=$(jq -r '.id' "$f")
+                SUMMARY=$(jq -r '.summary // ""' "$f" | head -c 50)
+                echo "  [ORPHANED] $ID: $SUMMARY..."
+                ORPHANS=$((ORPHANS + 1))
+            fi
+        done
+
+        if [ $ORPHANS -eq 0 ]; then
+            echo "No orphaned promises found."
+        else
+            echo ""
+            echo "Found $ORPHANS orphaned promise(s). Use 'cs-promise --adopt <id>' to claim."
+        fi
+        ;;
+
+    init)
+        # Create directories if needed
+        mkdir -p "$PROMISES_DIR"
+        mkdir -p "$HISTORY_DIR"
+
+        # Generate session ID if not already set
+        if [ -n "$CLAUDE_SESSION_ID" ]; then
+            # Already have a session ID, just confirm
+            echo "# Session already initialized: $CLAUDE_SESSION_ID" >&2
+            echo "export CLAUDE_SESSION_ID=\"$CLAUDE_SESSION_ID\""
+        else
+            # Generate new session ID
+            SESSION_ID=$("$SCRIPT_DIR/generate-session-id")
+
+            # Output export command (to be eval'd by caller)
+            echo "export CLAUDE_SESSION_ID=\"$SESSION_ID\""
+
+            # Log to stderr so it doesn't interfere with eval
+            echo "# Initialized session: $SESSION_ID" >&2
+            echo "# Promises dir: $PROMISES_DIR" >&2
+        fi
+        ;;
+esac
