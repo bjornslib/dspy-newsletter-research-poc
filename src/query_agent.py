@@ -156,7 +156,7 @@ class QUIPLERRetriever:
     def __init__(
         self,
         weaviate_client=None,
-        collection_name: str = "Articles"
+        collection_name: str = "NewsletterArticles"
     ):
         """Initialize QUIPLER retriever.
 
@@ -197,9 +197,10 @@ class QUIPLERRetriever:
             )
 
             passages = []
-            # Handle both list and iterator results
-            if hasattr(results, '__iter__'):
-                for i, result in enumerate(results):
+            # Weaviate v4 returns results in results.objects
+            objects = getattr(results, 'objects', results)
+            if objects:
+                for i, result in enumerate(objects):
                     props = result.properties if hasattr(result, 'properties') else {}
                     # Check if properties is a real dict (not MagicMock)
                     if isinstance(props, dict) and props:
@@ -386,7 +387,7 @@ class NewsletterQueryAgent(dspy.Module):
         self,
         weaviate_client=None,
         cohere_client=None,
-        collection_name: str = "Articles"
+        collection_name: str = "NewsletterArticles"
     ):
         """Initialize query agent.
 
