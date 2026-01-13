@@ -54,9 +54,14 @@ def configure_dspy(model: str = "gpt-4o-mini") -> None:
     dspy.settings.configure(lm=lm)
 
 
-# Configuration constants
-WEAVIATE_URL = os.getenv('WEAVIATE_URL', 'http://localhost:8080')
-WEAVIATE_GRPC_PORT = 50051
+# Load environment variables at module import
+load_env()
+
+# Configuration constants (loaded after load_env)
+WEAVIATE_HOST = os.getenv('WEAVIATE_HOST', 'localhost')
+WEAVIATE_PORT = int(os.getenv('WEAVIATE_PORT', '8100'))
+WEAVIATE_GRPC_PORT = int(os.getenv('WEAVIATE_GRPC_PORT', '50052'))
+WEAVIATE_URL = os.getenv('WEAVIATE_URL', f'http://{WEAVIATE_HOST}:{WEAVIATE_PORT}')
 
 # Collection configuration
 NEWSLETTER_COLLECTION_NAME = "NewsletterArticles"

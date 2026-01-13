@@ -184,11 +184,13 @@ class TestQueryCommand:
 
         assert '--topic' in result.output
 
+    @patch('weaviate.connect_to_local')
     @patch('src.query_agent.query')
-    def test_query_calls_query_agent(self, mock_query):
+    def test_query_calls_query_agent(self, mock_query, mock_weaviate):
         """Test query command calls query agent."""
         from src.cli import cli
 
+        mock_weaviate.return_value = MagicMock()
         mock_query.return_value = {
             'answer': 'FCRA requires consent',
             'sources': [],
@@ -203,11 +205,13 @@ class TestQueryCommand:
 
         mock_query.assert_called()
 
+    @patch('weaviate.connect_to_local')
     @patch('src.query_agent.query')
-    def test_query_displays_answer(self, mock_query):
+    def test_query_displays_answer(self, mock_query, mock_weaviate):
         """Test query displays answer."""
         from src.cli import cli
 
+        mock_weaviate.return_value = MagicMock()
         mock_query.return_value = {
             'answer': 'FCRA requires written consent for background checks.',
             'sources': [{'title': 'FCRA Guide', 'url': 'https://example.com'}],
@@ -222,11 +226,13 @@ class TestQueryCommand:
 
         assert 'FCRA requires' in result.output
 
+    @patch('weaviate.connect_to_local')
     @patch('src.query_agent.query')
-    def test_query_displays_sources(self, mock_query):
+    def test_query_displays_sources(self, mock_query, mock_weaviate):
         """Test query displays source citations."""
         from src.cli import cli
 
+        mock_weaviate.return_value = MagicMock()
         mock_query.return_value = {
             'answer': 'Answer here',
             'sources': [

@@ -20,6 +20,8 @@ import weaviate
 from weaviate.classes.config import Property, DataType, Configure
 from weaviate.classes.query import Filter, MetadataQuery
 
+from src.config import WEAVIATE_HOST, WEAVIATE_PORT, WEAVIATE_GRPC_PORT
+
 # Collection name constant
 COLLECTION_NAME = "NewsletterArticles"
 
@@ -95,7 +97,11 @@ class ArticleStore:
 
         for attempt in range(self.max_retries):
             try:
-                client = weaviate.connect_to_local()
+                client = weaviate.connect_to_local(
+                    host=WEAVIATE_HOST,
+                    port=WEAVIATE_PORT,
+                    grpc_port=WEAVIATE_GRPC_PORT
+                )
                 return client
             except Exception as e:
                 last_error = e

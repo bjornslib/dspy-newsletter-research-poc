@@ -58,3 +58,4 @@ weaviate_data/
 # MCP configs (may contain secrets)
 .mcp.json
 .claude/skills/mcp-skills/*/mcp-config.json
+trees/

@@ -2,8 +2,8 @@ services:
   weaviate:
     image: cr.weaviate.io/semitechnologies/weaviate:1.35.2
     ports:
-      - "8080:8080"
-      - "50051:50051"
+      - "8100:8100"  # Custom Weaviate image uses 8100
+      - "50052:50052"  # gRPC
     volumes:
       - weaviate_data:/var/lib/weaviate
     environment:

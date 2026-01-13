@@ -20,6 +20,8 @@ from rich.panel import Panel
 from rich.table import Table
 from typing import Optional, List
 
+from src.config import WEAVIATE_HOST, WEAVIATE_PORT, WEAVIATE_GRPC_PORT
+
 # Create Rich console for output
 console = Console()
 
@@ -112,7 +114,11 @@ def ingest(feeds: tuple, config_file: Optional[str], extract_content: bool):
 
         # Connect to Weaviate and store articles
         console.print("[blue]Connecting to Weaviate...[/blue]")
-        client = weaviate.connect_to_local()
+        client = weaviate.connect_to_local(
+                    host=WEAVIATE_HOST,
+                    port=WEAVIATE_PORT,
+                    grpc_port=WEAVIATE_GRPC_PORT
+                )
 
         from src import storage
         store = storage.ArticleStore(client=client)
@@ -191,7 +197,11 @@ def query(question: str, region: Optional[str], topic: Optional[str], max_source
     client = None
     try:
         # Connect to Weaviate for real search
-        client = weaviate.connect_to_local()
+        client = weaviate.connect_to_local(
+                    host=WEAVIATE_HOST,
+                    port=WEAVIATE_PORT,
+                    grpc_port=WEAVIATE_GRPC_PORT
+                )
 
         result = query_agent.query(
             question,
@@ -331,7 +341,7 @@ def config_show():
     settings = [
         ('OPENAI_API_KEY', os.environ.get('OPENAI_API_KEY', '')),
         ('COHERE_API_KEY', os.environ.get('COHERE_API_KEY', '')),
-        ('WEAVIATE_URL', os.environ.get('WEAVIATE_URL', 'http://localhost:8080')),
+        ('WEAVIATE_URL', os.environ.get('WEAVIATE_URL', f'http://localhost:{WEAVIATE_PORT}')),
     ]
 
     for name, value in settings:
@@ -397,7 +407,11 @@ def interactive():
     # Connect to Weaviate for the session
     client = None
     try:
-        client = weaviate.connect_to_local()
+        client = weaviate.connect_to_local(
+                    host=WEAVIATE_HOST,
+                    port=WEAVIATE_PORT,
+                    grpc_port=WEAVIATE_GRPC_PORT
+                )
         console.print("[dim]Connected to Weaviate[/dim]\n")
     except Exception as e:
         console.print(f"[yellow]Warning: Could not connect to Weaviate ({e}). Using mock data.[/yellow]\n")
