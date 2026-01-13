@@ -173,6 +173,13 @@ def query(question: str, region: Optional[str], topic: Optional[str], max_source
         newsletter-research query "GDPR impact on screening" --region EUROPE
     """
     from src import query_agent
+    from src.config import configure_dspy
+
+    # Configure DSPy with LLM (if API key available)
+    try:
+        configure_dspy()
+    except ValueError:
+        console.print("[yellow]Warning: OPENAI_API_KEY not set. Using fallback answer generation.[/yellow]")
 
     # Build filters
     filters = {}

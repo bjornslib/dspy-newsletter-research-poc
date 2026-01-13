@@ -275,7 +275,18 @@ class ReActSynthesizer(dspy.Module):
         Returns:
             Prediction with answer and sources.
         """
-        # For deterministic testing, generate structured answer
+        # Try to use actual LLM prediction if DSPy is configured
+        try:
+            if dspy.settings.lm is not None:
+                prediction = self.predict(context=context, question=question)
+                return dspy.Prediction(
+                    answer=prediction.answer,
+                    sources=self._extract_sources(context)
+                )
+        except Exception:
+            pass  # Fall through to mock answer
+
+        # Fallback: deterministic answer for testing without LLM
         answer = self._generate_answer(context, question)
         sources = self._extract_sources(context)
 
