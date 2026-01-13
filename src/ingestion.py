@@ -20,6 +20,7 @@ from email.utils import parsedate_to_datetime
 from html.parser import HTMLParser
 
 import requests
+import trafilatura
 
 
 # =============================================================================
@@ -284,7 +285,11 @@ class ContentExtractor:
         self.timeout = timeout
 
     def extract(self, url: str) -> str:
-        """Extract clean text content from URL.
+        """Extract clean text content from URL using trafilatura.
+
+        Trafilatura is specifically designed for web article extraction and
+        strips boilerplate content (navigation, ads, footers) leaving only
+        the main article text.
 
         Args:
             url: URL of the article to extract.
@@ -296,7 +301,31 @@ class ContentExtractor:
             NetworkError: If request fails.
             PaywallDetectedError: If paywall is detected.
         """
-        # Fetch HTML
+        # Try trafilatura first (purpose-built for article extraction)
+        try:
+            downloaded = trafilatura.fetch_url(url)
+            if downloaded:
+                # Check for paywall before extraction
+                if self._detect_paywall(downloaded):
+                    raise PaywallDetectedError(f"Paywall detected at {url}")
+
+                # Extract clean article content
+                content = trafilatura.extract(
+                    downloaded,
+                    include_comments=False,
+                    include_tables=True,
+                    no_fallback=False
+                )
+
+                if content and len(content) > 100:
+                    return content
+
+        except PaywallDetectedError:
+            raise
+        except Exception:
+            pass  # Fall through to legacy method
+
+        # Fallback: legacy BeautifulSoup method
         try:
             response = requests.get(
                 url,
@@ -313,7 +342,7 @@ class ContentExtractor:
         if self._detect_paywall(html):
             raise PaywallDetectedError(f"Paywall detected at {url}")
 
-        # Extract and clean content
+        # Extract and clean content using legacy method
         content = html_to_text(html)
 
         return content
