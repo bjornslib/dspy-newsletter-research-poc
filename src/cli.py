@@ -14,6 +14,7 @@ Beads Task: dspy-bot
 """
 
 import click
+import weaviate
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -98,15 +99,46 @@ def ingest(feeds: tuple, config_file: Optional[str], extract_content: bool):
     # Ingest articles
     console.print(f"[blue]Processing {len(feed_urls)} feed(s)...[/blue]")
 
+    client = None
     try:
         articles = ingestion.ingest_from_feeds(
             feed_urls,
             extract_content=extract_content
         )
 
+        if not articles:
+            console.print("[yellow]No articles found in feeds.[/yellow]")
+            return
+
+        # Connect to Weaviate and store articles
+        console.print("[blue]Connecting to Weaviate...[/blue]")
+        client = weaviate.connect_to_local()
+
+        from src import storage
+        store = storage.ArticleStore(client=client)
+        store.ensure_collection()
+
+        # Prepare articles for storage (ensure content field exists)
+        stored_count = 0
+        for article in articles:
+            # Use description as content if content not extracted
+            if 'content' not in article or not article['content']:
+                article['content'] = article.get('description', '')
+
+            # Skip articles without title or content
+            if not article.get('title') or not article.get('content'):
+                continue
+
+            try:
+                store.insert(article)
+                stored_count += 1
+            except Exception as insert_err:
+                console.print(f"[yellow]Warning: Failed to store article '{article.get('title', 'Unknown')}': {insert_err}[/yellow]")
+
         # Show summary
         console.print(Panel(
             f"[green]Ingested {len(articles)} articles[/green]\n"
+            f"[green]Stored {stored_count} articles to Weaviate[/green]\n"
             f"From {len(feed_urls)} feed(s)",
             title="Ingestion Complete"
         ))
@@ -114,6 +146,9 @@ def ingest(feeds: tuple, config_file: Optional[str], extract_content: bool):
     except Exception as e:
         console.print(f"[red]Error during ingestion: {e}[/red]")
         raise click.Abort()
+    finally:
+        if client:
+            client.close()
 
 
 # =============================================================================
@@ -146,11 +181,16 @@ def query(question: str, region: Optional[str], topic: Optional[str], max_source
     if topic:
         filters['topics'] = [topic.upper()]
 
+    client = None
     try:
+        # Connect to Weaviate for real search
+        client = weaviate.connect_to_local()
+
         result = query_agent.query(
             question,
             filters=filters if filters else None,
-            max_sources=max_sources
+            max_sources=max_sources,
+            weaviate_client=client
         )
 
         # Display answer
@@ -177,6 +217,9 @@ def query(question: str, region: Optional[str], topic: Optional[str], max_source
     except Exception as e:
         console.print(f"[red]Error: {e}[/red]")
         raise click.Abort()
+    finally:
+        if client:
+            client.close()
 
 
 # =============================================================================
@@ -337,36 +380,48 @@ def interactive():
         title="Interactive Mode"
     ))
 
-    while True:
-        try:
-            question = console.input("[bold blue]> [/bold blue]")
+    # Connect to Weaviate for the session
+    client = None
+    try:
+        client = weaviate.connect_to_local()
+        console.print("[dim]Connected to Weaviate[/dim]\n")
+    except Exception as e:
+        console.print(f"[yellow]Warning: Could not connect to Weaviate ({e}). Using mock data.[/yellow]\n")
 
-            if question.lower() in ['exit', 'quit', 'q']:
-                console.print("[dim]Goodbye![/dim]")
-                break
-
-            if not question.strip():
-                continue
-
-            # Process query
+    try:
+        while True:
             try:
-                result = query_agent.query(question)
+                question = console.input("[bold blue]> [/bold blue]")
 
-                console.print(f"\n[green]{result['answer']}[/green]\n")
+                if question.lower() in ['exit', 'quit', 'q']:
+                    console.print("[dim]Goodbye![/dim]")
+                    break
 
-                if result.get('sources'):
-                    console.print("[dim]Sources:[/dim]")
-                    for source in result['sources'][:3]:
-                        console.print(f"  - {source.get('title', 'Unknown')}")
+                if not question.strip():
+                    continue
 
-                console.print()
+                # Process query
+                try:
+                    result = query_agent.query(question, weaviate_client=client)
 
-            except Exception as e:
-                console.print(f"[red]Error: {e}[/red]\n")
+                    console.print(f"\n[green]{result['answer']}[/green]\n")
 
-        except (KeyboardInterrupt, EOFError):
-            console.print("\n[dim]Goodbye![/dim]")
-            break
+                    if result.get('sources'):
+                        console.print("[dim]Sources:[/dim]")
+                        for source in result['sources'][:3]:
+                            console.print(f"  - {source.get('title', 'Unknown')}")
+
+                    console.print()
+
+                except Exception as e:
+                    console.print(f"[red]Error: {e}[/red]\n")
+
+            except (KeyboardInterrupt, EOFError):
+                console.print("\n[dim]Goodbye![/dim]")
+                break
+    finally:
+        if client:
+            client.close()
 
 
 # =============================================================================
