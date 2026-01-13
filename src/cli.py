@@ -63,7 +63,7 @@ def cli():
 @click.option('--feed', '-f', 'feeds', multiple=True, help='RSS feed URL to ingest')
 @click.option('--config', '-c', 'config_file', type=click.Path(exists=True),
               help='Configuration file with feed list')
-@click.option('--extract-content/--no-extract-content', default=False,
+@click.option('--extract-content/--no-extract-content', default=True,
               help='Extract full article content')
 def ingest(feeds: tuple, config_file: Optional[str], extract_content: bool):
     """Ingest articles from RSS feeds.
@@ -379,6 +379,13 @@ def interactive():
     without restarting the tool. Type 'exit' or 'quit' to leave.
     """
     from src import query_agent
+    from src.config import configure_dspy
+
+    # Configure DSPy with LLM (if API key available)
+    try:
+        configure_dspy()
+    except ValueError:
+        console.print("[yellow]Warning: OPENAI_API_KEY not set. Using fallback answer generation.[/yellow]")
 
     console.print(Panel(
         "Welcome to Newsletter Research Interactive Mode\n"
